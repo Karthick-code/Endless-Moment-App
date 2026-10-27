@@ -6,7 +6,7 @@ Private, installable admin dashboard for the Endless Moment studio. All applicat
 - Build command: `npm install && npm run build`
 - Start command: `npm start`
 - Health endpoint: `/api/health`
-- Environment: `NODE_ENV=production`, `DEPLOY_FRONTEND=false`, `FRONTEND_URL=https://YOUR-NETLIFY-SITE.netlify.app`, `MONGODB_URI`, `JWT_SECRET` (at least 32 random characters).
+- Environment: `NODE_ENV=production`, `DEPLOY_FRONTEND=false`, `FRONTEND_URL=https://YOUR-NETLIFY-SITE.netlify.app`, `MONGODB_URI`, `JWT_SECRET` (at least 32 random characters), `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
 
 ## Netlify frontend
 - Build command: `npm install && npm run build`
@@ -20,3 +20,6 @@ There is no public registration/signup screen or public initial-admin endpoint. 
 Once an admin exists, additional accounts can be created only through authenticated admin-management API endpoints: `GET /api/admins`, `POST /api/admins`, and `DELETE /api/admins/:id`. Creating an account requires a valid email, name, and password of at least 12 characters. An admin cannot delete their own account or the last remaining admin.
 
 All client, project, and invoice records require MongoDB; there is no local database fallback. Invoices are restricted to converted clients. Google OAuth and biometric authentication are not configured; use email and password. Two-factor authentication is not required.
+
+## Project photo storage
+Project photos are compressed in the admin app and uploaded to Cloudinary through the authenticated Render API. MongoDB stores only the returned Cloudinary secure image URLs in the project's `images` array. Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in Render Environment settings; never expose the API secret in Netlify variables or frontend code.

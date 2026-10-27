@@ -38,6 +38,7 @@ export const api = {
     updateLead: (id, update) => request(`/leads/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(update) }),
     deleteLead: (id) => request(`/leads/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     getProjects: () => request('/projects'),
+    uploadProjectImage: (dataUrl) => request('/projects/upload-image', { method: 'POST', body: JSON.stringify({ dataUrl }) }),
     createProject: (project) => request('/projects', { method: 'POST', body: JSON.stringify(project) }),
     updateProject: (id, update) => request(`/projects/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(update) }),
     deleteProject: (id) => request(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }),

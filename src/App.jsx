@@ -108,7 +108,7 @@ const MainApp = () => {
         }
         catch (err) {
             console.error('Failed to save project in database:', err);
-            window.alert(err instanceof Error ? `Project was not saved: ${err.message}` : 'Project was not saved because the database request failed.');
+            throw err;
         }
     };
     const handleDeleteProject = async (id) => {

@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { v2 as cloudinary } from 'cloudinary';
 import { connectDB, getDbStatus } from './src/server/db.js';
 import { UserRepo } from './src/server/models/User.js';
 import { LeadRepo } from './src/server/models/Lead.js';
@@ -13,12 +14,20 @@ import { ProjectRepo } from './src/server/models/Project.js';
 import { SecurityLogRepo } from './src/server/models/SecurityLog.js';
 import { InvoiceRepo } from './src/server/models/Invoice.js';
 dotenv.config();
+
+// Cloudinary credentials belong only on the backend (Render environment variables).
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+});
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
+if (!JWT_SECRET ) {
     throw new Error('JWT_SECRET must be set.');
 }
 // CORS for separately deployed Netlify frontend. Set FRONTEND_URL to the exact
@@ -46,7 +55,8 @@ app.use((req, res, next) => {
     }
     next();
 });
-app.use(express.json());
+// Compressed project photos are sent to the backend and uploaded to Cloudinary.
+app.use(express.json({ limit: '12mb' }));
 // Initialize MongoDB Connection
 connectDB().catch((err) => {
     console.error('Initial MongoDB boot warning:', err);
@@ -457,6 +467,33 @@ app.delete('/api/leads/:id', authenticateJWT, async (req, res) => {
         res.status(500).json({ msg: 'Failed to delete lead.', error: msg });
     }
 });
+/* ----------------------------------------------------
+ * CLOUDINARY PROJECT PHOTO UPLOAD
+ * The browser sends a compressed data URL; Cloudinary stores the image,
+ * and the returned secure URL is saved in the project's images array.
+ * ---------------------------------------------------- */
+app.post('/api/projects/upload-image', authenticateJWT, async (req, res) => {
+    try {
+        const { dataUrl } = req.body || {};
+        if (typeof dataUrl !== 'string' || !/^data:image\/(jpeg|jpg|png|webp|gif);base64,/.test(dataUrl)) {
+            res.status(400).json({ msg: 'A valid image file is required.' });
+            return;
+        }
+        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+            res.status(503).json({ msg: 'Photo upload is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to the backend environment.' });
+            return;
+        }
+        const result = await cloudinary.uploader.upload(dataUrl, {
+            folder: 'endless-moment/projects',
+            resource_type: 'image',
+        });
+        res.status(201).json({ imageUrl: result.secure_url, publicId: result.public_id });
+    } catch (err) {
+        console.error('Cloudinary project photo upload failed:', err instanceof Error ? err.message : err);
+        res.status(502).json({ msg: 'Could not upload photo to Cloudinary. Please try again.' });
+    }
+});
+
 /* ----------------------------------------------------
  * PROJECTS API (EMPTY BY DEFAULT - REAL MONGODB DATA)
  * ---------------------------------------------------- */
